@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "start:dev": "nest start ai --watch",
-    "build": "nest build ai",
-    "start": "node dist/apps/ai/main.js"
+    "build": "pnpm --dir ../.. exec nest build ai",
+    "start": "node ../../dist/apps/ai/apps/ai/src/main.js"
   }
 }

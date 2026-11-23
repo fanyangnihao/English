@@ -1,9 +1,15 @@
 {
+	"packageManager": "pnpm@10.26.1",
 	"scripts": {
 		"web": "pnpm --filter @en/web dev",
 		"server": "pnpm --filter @en/server start:dev",
-		"ai": "pnpm --filter @en/server start:dev ai",
-		"all": "concurrently \"pnpm run web\" \"pnpm run server\" \"pnpm run ai\""
+		"ai": "pnpm --dir server exec nest start ai --watch",
+		"all": "concurrently \"pnpm run web\" \"pnpm run server\" \"pnpm run ai\"",
+		"build": "pnpm run build:tracker && pnpm run build:web && pnpm run build:server && pnpm run build:ai",
+		"build:tracker": "pnpm --filter @en/tracker build",
+		"build:web": "pnpm --filter @en/web build",
+		"build:server": "pnpm --dir server exec nest build server",
+		"build:ai": "pnpm --dir server exec nest build ai"
 	},
 	"dependencies": {
 		"@types/md5": "^2.3.6",

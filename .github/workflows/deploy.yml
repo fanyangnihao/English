@@ -1,0 +1,119 @@
+name: Deploy production
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: english-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DATABASE_URL: postgresql://ci:ci@127.0.0.1:5432/english
+      AI_DATABASE_URL: postgresql://ci:ci@127.0.0.1:5432/english
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.26.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build all applications
+        run: pnpm build
+
+      - name: Assemble release
+        run: |
+          set -euo pipefail
+          rm -rf .release
+          mkdir -p .release/server .release/packages
+          cp -R apps/web/dist .release/web
+          cp -R server/dist .release/server/dist
+          cp -R server/prisma .release/server/prisma
+          cp server/package.json server/prisma.config.ts .release/server/
+          cp package.json pnpm-lock.yaml pnpm-workspace.yaml .release/
+          cp -R packages/config packages/common .release/packages/
+          cp -R deploy .release/deploy
+          tar -C .release -czf english-release.tar.gz .
+
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: english-release
+          path: english-release.tar.gz
+          retention-days: 3
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    env:
+      SSH_HOST: ${{ secrets.SSH_HOST }}
+      SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
+      SSH_USER: ${{ secrets.SSH_USER || 'root' }}
+      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+      SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+      DEPLOY_PATH: ${{ secrets.DEPLOY_PATH || '/www/wwwroot/47.108.199.245' }}
+      RELEASE_ID: ${{ github.run_id }}-${{ github.sha }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Download release artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: english-release
+
+      - name: Configure SSH
+        run: |
+          set -euo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/english_deploy
+          chmod 600 ~/.ssh/english_deploy
+
+          if [[ -n "${SSH_KNOWN_HOSTS:-}" ]]; then
+            printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          else
+            echo "SSH_KNOWN_HOSTS is not configured; scanning the host key once." >&2
+            ssh-keyscan -H -p "$SSH_PORT" "$SSH_HOST" > ~/.ssh/known_hosts
+          fi
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Upload release to server
+        run: |
+          set -euo pipefail
+          scp -P "$SSH_PORT" -i ~/.ssh/english_deploy \
+            -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            english-release.tar.gz \
+            "$SSH_USER@$SSH_HOST:/tmp/english-release-${RELEASE_ID}.tar.gz"
+
+      - name: Deploy release
+        run: |
+          set -euo pipefail
+          ssh -p "$SSH_PORT" -i ~/.ssh/english_deploy \
+            -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            "$SSH_USER@$SSH_HOST" \
+            "bash -s -- '$RELEASE_ID' '/tmp/english-release-${RELEASE_ID}.tar.gz' '$DEPLOY_PATH'" \
+            < deploy/remote-deploy.sh

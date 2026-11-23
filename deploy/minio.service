@@ -1,0 +1,17 @@
+[Unit]
+Description=MinIO object storage
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/www/minio
+EnvironmentFile=/www/minio/minio.env
+ExecStart=/www/minio/minio server /www/minio/data --address 0.0.0.0:9000 --console-address 0.0.0.0:9001
+Restart=always
+RestartSec=5
+LimitNOFILE=65536
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

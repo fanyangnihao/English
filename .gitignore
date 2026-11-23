@@ -6,6 +6,8 @@ coverage/
 *.tsbuildinfo
 *.log
 .DS_Store
+.release/
+english-release.tar.gz
 
 # Server secrets and local environment files
 server/.env
