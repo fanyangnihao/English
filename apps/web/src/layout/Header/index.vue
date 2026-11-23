@@ -1,30 +1,30 @@
 <template>
-    <header class="flex items-center h-20 border-b border-gray-200 justify-center sticky top-0 bg-white z-10">
-        <div class="w-[1200px] mx-auto flex items-center justify-between">
+    <header class="flex items-center min-h-20 border-b border-gray-200 justify-center sticky top-0 bg-white z-10">
+        <div class="w-full max-w-[1200px] mx-auto flex items-center justify-between gap-2 overflow-x-auto px-4 py-2">
             <div
-                class="text-2xl font-bold bg-indigo-700 text-white rounded-[10px] px-2 py-1 w-10 flex items-center justify-center h-10 ">
+                class="shrink-0 text-2xl font-bold bg-indigo-700 text-white rounded-[10px] px-2 py-1 w-10 flex items-center justify-center h-10">
                 E</div>
-            <div class="text-2xl font-bold">English Learning</div>
+            <div class="hidden shrink-0 text-2xl font-bold lg:block">English Learning</div>
             <template v-for="route in routes" :key="route.path">
                 <div @click="gotoPath(route.path)" :class="isActive(route.path)"
-                    class="flex items-center gap-2 cursor-pointer rounded-[10px] px-2 py-1">
+                    class="flex shrink-0 items-center gap-2 cursor-pointer rounded-[10px] px-2 py-1">
                     <el-icon>
                         <component :is="route.icon" />
                     </el-icon>
-                    <span>{{ route.name }}</span>
+                    <span class="hidden md:inline">{{ route.name }}</span>
                 </div>
             </template>
-            <div class="flex items-center gap-2 bg-blue-200 text-blue-700 rounded-full px-2 py-1"><el-icon>
+            <div class="hidden shrink-0 items-center gap-2 bg-blue-200 text-blue-700 rounded-full px-2 py-1 md:flex"><el-icon>
                     <Sunny />
                 </el-icon> <span class="font-bold text-sm">{{ userStore.getUser?.wordNumber ?? 0 }}</span></div>
-            <div class="flex items-center gap-2 bg-amber-200 text-amber-700 rounded-full px-2 py-1"><el-icon>
+            <div class="hidden shrink-0 items-center gap-2 bg-amber-200 text-amber-700 rounded-full px-2 py-1 md:flex"><el-icon>
                     <Star />
                 </el-icon> <span class="font-bold text-sm">{{ userStore.getUser?.dayNumber ?? 0 }}</span></div>
             <el-popover :width="340">
                 <template #reference>
-                    <div class="flex items-center gap-2 border-l cursor-pointer border-gray-200 pl-4">
-                        <img class="w-10 h-10 rounded-full ml-2 mr-2" :src="avatar" />
-                        <span class="text-sm font-bold">{{ userStore.getUser?.name ?? '游客' }}</span>
+                    <div class="flex shrink-0 items-center gap-2 border-l cursor-pointer border-gray-200 pl-2 sm:pl-4">
+                        <img class="w-10 h-10 rounded-full ml-2 mr-2" :src="avatar" alt="用户头像" />
+                        <span class="hidden text-sm font-bold sm:inline">{{ userStore.getUser?.name ?? '游客' }}</span>
                     </div>
                 </template>
                 <Profile />
@@ -66,11 +66,8 @@ const gotoPath = async (path: string) => {
     const isAuth = routes.find(route => route.path === path)?.isAuth ?? false
     //如果是true表示必须登录
     if (isAuth) {
-        await login()
-        //如果登录了下面的代码才会走
-        if (userStore.getUser) {
-            router.push(path)
-        }
+        if (!(await login())) return
+        router.push(path)
     } else {
         router.push(path)
     }

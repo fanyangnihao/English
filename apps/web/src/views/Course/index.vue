@@ -1,6 +1,6 @@
 <template>
     <div class="min-h-[60vh] bg-zinc-50/80">
-        <div class="w-[1200px] mx-auto px-4 pt-12 pb-24">
+        <div class="mx-auto w-full max-w-[1200px] px-4 pt-12 pb-24">
             <!-- 标题 -->
             <header class="mb-12 text-center">
                 <p class="text-sm font-medium text-indigo-600 tracking-wide uppercase mb-2">Vocabulary Courses</p>
@@ -72,7 +72,7 @@ const getList = async () => {
 }
 //打开支付弹框
 const openPay = async (course: Course) => {
-     await login();
+    if (!(await login())) return;
     if (currentTab.value === 'list') {
         payVisible.value = true;
         selectedCourse.value = course;

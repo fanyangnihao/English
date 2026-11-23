@@ -1,22 +1,24 @@
 <template>
-    <div class="w-[1200px] mx-auto mt-10 pb-30">
+    <div class="mx-auto mt-10 w-full max-w-[1200px] px-4 pb-30 sm:px-6">
         <!-- 背景区域 -->
-        <div class="relative flex justify-between rounded-[20px] p-9">
+        <div class="relative flex flex-col justify-between rounded-[20px] p-4 sm:p-9 lg:flex-row">
             <div class="absolute inset-0 bg-linear-to-r from-gray-900 via-gray-900 to-gray-900/70 rounded-[20px]" />
-            <div class="relative z-8 p-8">
+            <div class="relative z-8 p-4 sm:p-8">
                 <span class="text-white text-1xl bg-indigo-500/20 rounded-[100px] px-4 py-2">坚持5天打卡学习</span>
                 <div class="text-2xl font-bold pt-8 text-l text-indigo-500">通过跟AI对话，提高你的英语水平</div>
                 <div class="text-1xl font-bold pt-5 text-gray-300">超1000000学员的选择，提升您的英语能力</div>
-                <div class="flex items-center gap-2 pt-10">
+                <div class="flex flex-wrap items-center gap-3 pt-10">
                     <button
                         @click="showLogin"
                         class="bg-indigo-700 text-white rounded-[100px] px-4 py-2 cursor-pointer text-sm block w-30 h-10">立即学习</button>
                     <button
+                        @click="router.push('/courses/index')"
                         class="bg-indigo-700 text-white rounded-[100px] px-4 py-2 cursor-pointer text-sm block w-30 h-10">查看课程</button>
                 </div>
             </div>
-            <div class="relative z-8 p-8">
-                <Hologram />
+            <div class="relative z-8 w-full p-4 sm:p-8 lg:w-auto">
+                <Hologram v-if="showHologram" />
+                <div v-else class="aspect-[2/1] w-full max-w-[500px] animate-pulse rounded-2xl bg-white/5" aria-hidden="true" />
             </div>
         </div>
         <!-- 描述区域 -->
@@ -25,7 +27,7 @@
             <div class="text-1xl text-why-content font-bold text-gray-600 mt-4">我们经过科学的验证，AI学习英语的效果比传统学习方式更好，更高效。</div>
         </div>
         <!-- 数据统计区域 -->
-        <div class="mt-16 py-12 flex items-center justify-between">
+        <div class="mt-16 grid grid-cols-2 gap-y-8 py-12 lg:flex lg:items-center lg:justify-between">
             <template v-for="(item, index) in stats" :key="item.label">
                 <div class="flex-1 text-center">
                     <div class="flex items-baseline justify-center gap-1">
@@ -34,7 +36,7 @@
                     </div>
                     <div class="text-gray-500 mt-2">{{ item.label }}</div>
                 </div>
-                <div v-if="index < stats.length - 1" class="w-px h-16 bg-gray-200" />
+                <div v-if="index < stats.length - 1" class="hidden w-px h-16 bg-gray-200 lg:block" />
             </template>
         </div>
         <div class="relative text-center py-8 mb-6">
@@ -54,7 +56,7 @@
                 </div>
             </div>
         </div>
-        <div class="grid cards-container grid-cols-3 gap-6" style="perspective: 1000px">
+        <div class="cards-container grid grid-cols-1 gap-6 md:grid-cols-3" style="perspective: 1000px">
             <div v-for="(item, index) in abouts" :key="item.title"
                 class="about-card group relative overflow-hidden rounded-[24px] p-8 cursor-pointer transition-all duration-500 hover:-translate-y-2 bg-white border border-gray-200 hover:border-indigo-300 hover:shadow-xl hover:shadow-indigo-500/10"
                 :style="{ animationDelay: `${index * 100}ms` }">
@@ -81,14 +83,16 @@
 
 
 <script setup lang="ts">
-import Hologram from './components/Hologram.vue'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { onMounted, reactive } from 'vue'
+import { defineAsyncComponent, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { useLogin } from '@/hooks/useLogin'
+const Hologram = defineAsyncComponent(() => import('./components/Hologram.vue'))
 const { login } = useLogin()
 import { useRouter } from 'vue-router'
 const router = useRouter()
+const showHologram = ref(false)
+let loadTimer = 0
 gsap.registerPlugin(ScrollTrigger)
 const stats = reactive([
     { value: 0, suffix: '+', label: '累计学员', target: 1000000 },
@@ -196,14 +200,20 @@ const initProject = () => {
     })
 }
 
-const showLogin = () => {
-     login().then(() => {
-        // 跳转到ai学习页面
-        router.push('/ai')
-     })
+const showLogin = async () => {
+    if (await login()) {
+        router.push('/chat/index')
+    }
 }
 onMounted(() => {
     initProject()
+    loadTimer = window.setTimeout(() => {
+        showHologram.value = true
+    }, 300)
+})
+onBeforeUnmount(() => {
+    if (loadTimer) window.clearTimeout(loadTimer)
+    ScrollTrigger.getAll().forEach((trigger) => trigger.kill())
 })
 
 </script>

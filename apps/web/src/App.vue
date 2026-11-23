@@ -1,18 +1,25 @@
 <template>
-  <RouterView />
-  <Search />
-  <Login />
+  <el-config-provider :locale="zhCn">
+    <RouterView />
+    <Search />
+    <Login v-if="isShowLogin" />
+  </el-config-provider>
 </template>
 
 <script setup lang="ts">
+import { defineAsyncComponent, provide, ref, watch } from 'vue'
 import { RouterView } from 'vue-router'
+import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import Search from './components/Search/index.vue'
-import Login from './components/Login/index.vue'
-import { provide, ref, watch } from 'vue'
 import { IS_SHOW_LOGIN } from './components/Login/type'
-provide(IS_SHOW_LOGIN, ref(false)) // 是否显示登录框 并且扩展为全局调用 默认不显示
 import { useSocket } from './hooks/useSocket'
 import { Tracker } from '@en/tracker'
+import { useUserStore } from './stores/user'
+
+const Login = defineAsyncComponent(() => import('./components/Login/index.vue'))
+const isShowLogin = ref(false)
+provide(IS_SHOW_LOGIN, isShowLogin)
+
 const tracker = new Tracker({
     baseUrl: '/api/v1',
     uv: {
@@ -32,7 +39,7 @@ const tracker = new Tracker({
         api: '/tracker/performance'
     }
 })
-import { useUserStore } from './stores/user'
+
 const userStore = useUserStore()
 const { connect, disconnect } = useSocket()
 watch(() => userStore.user?.id, (newVal) => {
@@ -43,5 +50,4 @@ watch(() => userStore.user?.id, (newVal) => {
     disconnect();
   }
 }, { immediate: true })
-
 </script>

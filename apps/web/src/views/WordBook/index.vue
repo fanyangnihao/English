@@ -1,6 +1,6 @@
 <template>
-    <div class="w-[1200px] mx-auto mt-10 bg-linear-to-br from-blue-50 to-indigo-50 rounded-[20px] p-20 shadow-lg">
-        <div class="h-20">
+    <div class="mx-auto mt-10 w-full max-w-[1200px] bg-linear-to-br from-blue-50 to-indigo-50 rounded-[20px] p-4 shadow-lg sm:p-10 lg:p-20">
+        <div class="min-h-20">
             <div class="flex items-center gap-2">
                 <el-icon color="#2563EB" size="20">
                     <Reading />
@@ -9,8 +9,8 @@
             </div>
             <div class="text-sm text-gray-600">词典来源：牛津、柯林斯、BNC、FRQ、高考、中考、GRE、TOEFL、IELTS、大学英语六级、大学英语四级、考研</div>
         </div>
-        <div class="flex items-center mb-10">
-            <el-input @keyup.enter="searchWord" class="mr-10" v-model="query.word" placeholder="请输入单词"></el-input>
+        <div class="mb-10 flex flex-wrap items-center gap-3">
+            <el-input @keyup.enter="searchWord" class="w-full sm:w-64" v-model="query.word" placeholder="请输入单词"></el-input>
             <el-checkbox v-model="query.gk">高考</el-checkbox>
             <el-checkbox v-model="query.zk">中考</el-checkbox>
             <el-checkbox v-model="query.gre">GRE</el-checkbox>
@@ -19,9 +19,9 @@
             <el-checkbox v-model="query.cet6">六级</el-checkbox>
             <el-checkbox v-model="query.cet4">四级</el-checkbox>
             <el-checkbox v-model="query.ky">考研</el-checkbox>
-            <el-button @click="searchWord" class="ml-10" type="primary">搜索</el-button>
+            <el-button @click="searchWord" type="primary">搜索</el-button>
         </div>
-        <div class="grid grid-cols-3 gap-2">
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <div class="bg-white hover:bg-blue-50 border border-blue-200 text-gray-800 rounded-[10px] p-4 cursor-pointer transition-all duration-200 shadow-sm hover:shadow-md h-[220px]"
                 v-for="item in list" :key="item.id">
                 <div class="">
@@ -31,7 +31,7 @@
                             <VideoPlay />
                         </el-icon></div>
                     <div class="text-sm text-gray-700 mb-1 overflow-hidden line-clamp-2">{{ item.definition }}</div>
-                    <div v-html="item.translation" class="text-sm text-gray-600 mb-1 overflow-hidden line-clamp-2">
+                    <div v-html="sanitizeHtml(item.translation)" class="text-sm text-gray-600 mb-1 overflow-hidden line-clamp-2">
                     </div>
                     <div class="text-sm text-gray-600 mt-3 flex items-center gap-2 flex-wrap">
                         <el-tag v-if="item.gk" type="primary" size="small">高考</el-tag>
@@ -45,9 +45,9 @@
                     </div>
                 </div>
             </div>
-            <el-pagination class="mt-10" background v-model:current-page="query.page" v-model:page-size="query.pageSize"
-                :total="total" @current-change="getList" @size-change="getList" />
         </div>
+        <el-pagination class="mt-10 justify-center" background v-model:current-page="query.page" v-model:page-size="query.pageSize"
+            :total="total" @current-change="getList" @size-change="getList" />
     </div>
 </template>
 
@@ -57,6 +57,7 @@ import { getWordBookList } from '@/apis/word-book'
 import type { WordQuery, WordList } from '@en/common/word'
 import { Reading, VideoPlay } from '@element-plus/icons-vue'
 import { useAudio } from '@/hooks/useAudio'
+import { sanitizeHtml } from '@/utils/html'
 const { playAudio } = useAudio({})
 const total = ref<WordList['total']>(0)
 const list = ref<WordList['list']>([])

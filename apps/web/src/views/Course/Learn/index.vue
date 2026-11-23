@@ -1,6 +1,6 @@
 <template>
     <div class="min-h-[60vh] bg-zinc-50/80">
-        <div class="w-[1200px] mx-auto px-4 pt-12 pb-24">
+        <div class="mx-auto w-full max-w-[1200px] px-4 pt-12 pb-24">
             <header class="mb-10 text-center">
                 <h1 class="text-3xl font-bold text-zinc-900 tracking-tight sm:text-4xl">{{ title }}</h1>
                 <p class="mt-3 text-zinc-500 text-sm">请根据释义和翻译拼写单词</p>
@@ -58,13 +58,13 @@
                             <div class="mb-4 rounded-lg bg-zinc-50/80 border border-zinc-100 p-4">
                                 <p class="text-xs font-medium text-zinc-400 uppercase tracking-wide mb-2">释义</p>
                                 <div class="text-zinc-700 leading-relaxed prose prose-sm max-w-none"
-                                    v-html="currentWord?.definition" />
+                                    v-html="sanitizeHtml(currentWord?.definition)" />
                             </div>
                             <!-- 翻译 -->
                             <div class="rounded-lg bg-zinc-50/80 border border-zinc-100 p-4">
                                 <p class="text-xs font-medium text-zinc-400 uppercase tracking-wide mb-2">翻译</p>
                                 <div class="text-zinc-600 leading-relaxed whitespace-pre-line prose prose-sm max-w-none"
-                                    v-html="currentWord?.translation" />
+                                    v-html="sanitizeHtml(currentWord?.translation)" />
                             </div>
                             <!--拼写练习-->
                             <div class="rounded-lg bg-zinc-50/80 border border-zinc-100 p-4">
@@ -103,6 +103,7 @@ import { View, Hide, VideoPlay } from '@element-plus/icons-vue';
 import { getWordList, saveWordMaster as saveWordMasterApi } from '@/apis/learn';
 import { ElMessage } from 'element-plus';
 import { useUserStore } from '@/stores/user';
+import { sanitizeHtml } from '@/utils/html';
 const userStore = useUserStore();
 const inputRefs = useTemplateRef<HTMLInputElement[]>('inputRefs');
 interface WordItem {

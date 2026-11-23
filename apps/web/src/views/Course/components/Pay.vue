@@ -80,7 +80,6 @@ const timeExpire = ref(0); //支付剩余时间
 
 watch(modelValue, (newVal) => {
     const socket = getSocket();
-    console.log('socket', socket,newVal);
     if (newVal) {
         socket?.on('paymentSuccess', () => {
             ElMessage.success({

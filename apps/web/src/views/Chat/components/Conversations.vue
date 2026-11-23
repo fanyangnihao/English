@@ -1,5 +1,5 @@
 <template>
-    <div class="p-5 rounded-[5px] w-[256px] bg-purple-50 border border-right-1 border-t-0 border-b-0 border-l-0 border-gray-200">
+    <div class="w-full rounded-[5px] border-gray-200 bg-purple-50 p-3 md:w-[256px] md:p-5">
         <div @click="changeActive(value)" :class="{'bg-purple-300': active === value.id}" class="rounded-[5px] p-2 transition-all duration-300" v-for="value in chatMode" :key="value.id">
             <div class="text-sm  cursor-pointer p-2 px-4 text-gray-700">
                 {{ value.label }}
@@ -24,8 +24,10 @@ const changeActive = (value:ChatMode) => {
 const getChatModeList = async () => {
     const res = await getChatMode()
     chatMode.value = res.data
-    active.value = res.data[0].id //默认选中第一个
-    emits('onGetRole', res.data[0].role) //派发role
+    const firstMode = res.data[0]
+    if (!firstMode) return
+    active.value = firstMode.id //默认选中第一个
+    emits('onGetRole', firstMode.role) //派发role
 }
 onMounted(() => {
     getChatModeList()

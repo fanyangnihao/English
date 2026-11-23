@@ -1,5 +1,5 @@
 <template>
-    <div class="flex-1 h-[750px] p-5 bg-purple-50 flex flex-col">
+    <div class="flex min-h-[560px] flex-1 flex-col bg-purple-50 p-3 sm:p-5 md:h-[750px]">
         <div class="flex-1 overflow-y-auto">
             <div v-for="(item, index) in list" :key="index">
                 <div class="flex justify-end items-center  gap-4 mt-5 mb-5 mr-5" v-if="item.role === 'human'">
@@ -27,22 +27,20 @@
         <div class="flex p-5 border-t border-gray-200 box-border flex-col gap-3">
             <!-- 功能选项 -->
             <div class="flex items-center gap-3">
-                <div class="flex items-center gap-1 px-3 py-1 rounded-full text-xs cursor-pointer transition-all border"
+                <button type="button" class="flex items-center gap-1 px-3 py-1 rounded-full text-xs cursor-pointer transition-all border"
                     :class="deepThink
                         ? 'bg-purple-100 border-purple-400 text-purple-700'
                         : 'bg-gray-100 border-gray-200 text-gray-500 hover:bg-gray-200'"
                     @click="deepThink = !deepThink">
-                    <span>🧠</span>
                     <span>深度思考</span>
-                </div>
-                <div class="flex items-center gap-1 px-3 py-1 rounded-full text-xs cursor-pointer transition-all border"
+                </button>
+                <button type="button" class="flex items-center gap-1 px-3 py-1 rounded-full text-xs cursor-pointer transition-all border"
                     :class="webSearch
                         ? 'bg-blue-100 border-blue-400 text-blue-700'
                         : 'bg-gray-100 border-gray-200 text-gray-500 hover:bg-gray-200'"
                     @click="webSearch = !webSearch">
-                    <span>🌐</span>
                     <span>联网搜索</span>
-                </div>
+                </button>
             </div>
             <!-- 输入框 -->
             <div class="flex">
@@ -62,6 +60,7 @@ import type { ChatMessageList } from '@en/common/chat';
 import { marked } from 'marked'
 import '@/assets/css/deep-seek.css'
 import { useVoiceToText } from '@/hooks/useVoiceToText'
+import { sanitizeHtml } from '@/utils/html'
 const { isRecording, start, stop } = useVoiceToText({
     lang: 'zh-CN',
     continuous: true,
@@ -83,7 +82,7 @@ const sendMessage = () => {
 //markdown解析HTML
 const parseMarkdown = (content: string) => {
     if (!content) return ''
-    return marked.parse(content)
+    return sanitizeHtml(marked.parse(content) as string)
 }
 //开始录音
 const startRecording = () => {
