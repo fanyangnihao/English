@@ -1,0 +1,10 @@
+{
+  "name": "@en/ai",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "start:dev": "nest start ai --watch",
+    "build": "nest build ai",
+    "start": "node dist/apps/ai/main.js"
+  }
+}

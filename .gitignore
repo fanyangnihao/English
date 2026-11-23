@@ -1,0 +1,16 @@
+node_modules/
+dist/
+build/
+coverage/
+.vite/
+*.tsbuildinfo
+*.log
+.DS_Store
+
+# Server secrets and local environment files
+server/.env
+server/.env*
+
+# Local overrides in any package
+**/.env.local
+**/.env.*.local
