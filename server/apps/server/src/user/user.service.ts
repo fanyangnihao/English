@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import type {
   UserLogin,
   UserRegister,
@@ -109,10 +109,9 @@ export class UserService {
       const decoded = this.jwtService.verify<RefreshTokenPayload>(
         createUserDto.refreshToken,
       );
-      console.log('decoded', decoded);
       //2.为什么增加这么一个判断 accessToken 冒充refreshToken 进行攻击
       if (decoded.tokenType !== 'refresh') {
-        return this.responseService.error(null, 'refreshToken已过期或无效');
+        throw new UnauthorizedException('refreshToken已过期或无效');
       }
       const user = await this.prisma.user.findUnique({
         where: {
@@ -121,17 +120,19 @@ export class UserService {
       });
       //3.如果查不出来说明userId是伪造的
       if (!user) {
-        return this.responseService.error(null, '用户不存在');
+        throw new UnauthorizedException('用户不存在');
       }
       const token = this.authService.generateToken({
         userId: user.id,
         name: user.name,
         email: user.email,
       });
-      console.log('this.authService', token);
       return this.responseService.success(token);
     } catch (error) {
-      return this.responseService.error(null, 'refreshToken已过期或无效');
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+      throw new UnauthorizedException('refreshToken已过期或无效');
     }
   }
   //上传头像
