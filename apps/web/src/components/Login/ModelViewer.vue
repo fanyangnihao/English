@@ -7,7 +7,7 @@
                     class="w-10 h-10 bg-linear-to-br from-indigo-500 to-purple-600 rounded-[10px] flex items-center justify-center">
                     <span class="text-white font-bold text-xl">E</span>
                 </div>
-                <span class="text-white text-xl font-bold">English App</span>
+                <span class="text-white text-xl font-bold">English Learning</span>
             </div>
         </div>
         <!-- 登录/注册切换按钮 -->

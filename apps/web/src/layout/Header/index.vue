@@ -4,7 +4,7 @@
             <div
                 class="text-2xl font-bold bg-indigo-700 text-white rounded-[10px] px-2 py-1 w-10 flex items-center justify-center h-10 ">
                 E</div>
-            <div class="text-2xl font-bold">English App</div>
+            <div class="text-2xl font-bold">English Learning</div>
             <template v-for="route in routes" :key="route.path">
                 <div @click="gotoPath(route.path)" :class="isActive(route.path)"
                     class="flex items-center gap-2 cursor-pointer rounded-[10px] px-2 py-1">
