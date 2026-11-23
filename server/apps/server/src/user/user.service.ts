@@ -14,6 +14,7 @@ import { userSelect, updateUserSelect } from './user.select';
 import { MinioService } from '@libs/shared/minio/minio.service';
 import { ConfigService } from '@nestjs/config';
 import type { Request } from 'express';
+import { DigestScheduleService } from './digest-schedule.service';
 @Injectable()
 export class UserService {
   constructor(
@@ -23,6 +24,7 @@ export class UserService {
     private readonly jwtService: JwtService,
     private readonly minioService: MinioService,
     private readonly configService: ConfigService,
+    private readonly digestScheduleService: DigestScheduleService,
   ) {}
   //登录
   async login(createUserDto: UserLogin) {
@@ -168,6 +170,10 @@ export class UserService {
   }
   //更新用户信息
   async updateUser(createUserDto: UserUpdate, user: Request['user']) {
+    if (createUserDto.isTimingTask && !createUserDto.email?.trim()) {
+      return this.responseService.error(null, '开启定时任务前请先填写邮箱');
+    }
+
     const updatedUser = await this.prisma.user.update({
       where: {
         id: user.userId,
@@ -183,6 +189,15 @@ export class UserService {
       },
       select: updateUserSelect,
     });
+    try {
+      await this.digestScheduleService.sync({
+        ...updatedUser,
+        id: user.userId,
+      });
+    } catch (error) {
+      console.error('Failed to sync user email digest schedule', error);
+      return this.responseService.error(null, '定时任务配置失败，请稍后重试');
+    }
     return this.responseService.success(updatedUser);
   }
 }

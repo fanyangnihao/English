@@ -30,12 +30,24 @@ import { BullModule } from '@nestjs/bullmq';
     BullModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        connection: {
-          host: configService.get('REDIS_HOST'),
-          port: Number(configService.get('REDIS_PORT')),
-        },
-      }),
+      useFactory: (configService: ConfigService) => {
+        const host = configService.get<string>('REDIS_HOST');
+        const port = Number(configService.get<string>('REDIS_PORT'));
+
+        if (!host) {
+          throw new Error('REDIS_HOST is not configured');
+        }
+        if (!Number.isInteger(port) || port < 1 || port > 65535) {
+          throw new Error('REDIS_PORT must be a valid TCP port');
+        }
+
+        return {
+          connection: {
+            host,
+            port,
+          },
+        };
+      },
     }),
     JwtModule.registerAsync({
       imports: [ConfigModule],

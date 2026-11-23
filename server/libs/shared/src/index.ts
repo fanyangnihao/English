@@ -8,3 +8,4 @@ export * from './pay/pay.module';
 export * from './pay/pay.service';
 export * from './email/email.module';
 export * from './email/email.service';
+export * from './digest/digest.schedule';

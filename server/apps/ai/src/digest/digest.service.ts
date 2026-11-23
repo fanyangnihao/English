@@ -1,13 +1,17 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
-import { PrismaService } from '@libs/shared';
+import {
+  digestQueueName,
+  PrismaService,
+  syncUserDigestSchedule,
+} from '@libs/shared';
 import dayjs from 'dayjs';
 import { createAgent } from 'langchain';
 import { createDeepSeek } from '../llm/llm.config';
 import { tool } from '@langchain/core/tools'; //引入langchain的工具
 import marked from 'marked';
 import { Queue } from 'bullmq'; //类型
-import { digestQueueName } from './digest.queue';
 import { InjectQueue } from '@nestjs/bullmq';
+
 @Injectable()
 export class DigestService implements OnModuleInit {
   constructor(
@@ -34,7 +38,7 @@ export class DigestService implements OnModuleInit {
                 createdAt: {
                   //今天00:00:00 - 明天00:00:00
                   gte: dayjs().startOf('day').toDate(),
-                  lte: dayjs().add(1, 'day').startOf('day').toDate(),
+                  lt: dayjs().add(1, 'day').startOf('day').toDate(),
                 },
               },
               select: {
@@ -66,45 +70,65 @@ export class DigestService implements OnModuleInit {
       },
     );
   }
+
   async onModuleInit() {
-    //注册定时任务队列
-    this.digestQueue.add(
-      digestQueueName.task.everyDayDigest,
-      {},
-      {
-        repeat: {
-          pattern: '0 0 * * *', //每天0点执行 cron
-        },
-      },
+    await this.digestQueue.removeJobScheduler(
+      digestQueueName.scheduler.legacyEveryDayDigest,
     );
+
+    const users = await this.prismaService.user.findMany({
+      where: {
+        isTimingTask: true,
+        timingTaskTime: { not: '' },
+        email: { not: '' },
+      },
+      select: {
+        id: true,
+        email: true,
+        isTimingTask: true,
+        timingTaskTime: true,
+      },
+    });
+
+    for (const user of users) {
+      try {
+        await syncUserDigestSchedule(this.digestQueue, user);
+      } catch (error) {
+        console.error(
+          `Failed to restore email digest schedule for user ${user.id}`,
+          error,
+        );
+      }
+    }
   }
 
-  async handleEmailDigest() {
-    console.log('定时任务执行了');
-    //1.筛选高质量用户(打开定时任务 + 定时任务有时间 + 今天学过的单词 + 邮箱不为空)
-    const userIds = await this.prismaService.user.findMany({
+  async createUserEmailDigest(userId: string) {
+    const user = await this.prismaService.user.findFirst({
       where: {
-        isTimingTask: true, //开启了定时任务
-        timingTaskTime: { not: '' }, //定时任务时间不为空
-        email: { not: null }, //邮箱不为空
+        id: userId,
+        isTimingTask: true,
+        timingTaskTime: { not: '' },
+        email: { not: '' },
         wordBookRecords: {
-          //some: 至少有一个 every全部满足 none空的
-          //createdAt创建时间00:00:00 - 明天的00:00:00
           some: {
             createdAt: {
-              gte: dayjs().startOf('day').toDate(), //>=今天00:00:00
-              lte: dayjs().add(1, 'day').startOf('day').toDate(), //<=明天00:00:00
+              gte: dayjs().startOf('day').toDate(),
+              lt: dayjs().add(1, 'day').startOf('day').toDate(),
             },
           },
         },
       },
       select: {
         id: true,
-        timingTaskTime: true,
         email: true,
       },
     });
-    for (const user of userIds) {
+
+    if (!user?.email) {
+      return null;
+    }
+
+    try {
       const agent = createAgent({
         model: createDeepSeek(),
         tools: [this.queryTool()],
@@ -121,34 +145,23 @@ export class DigestService implements OnModuleInit {
         ],
       });
       const content = result.messages.at(-1)?.content;
-      if (content) {
-        const html = await marked.parse(content as string);
-        const [hour, minute, second] = user.timingTaskTime
-          .split(':')
-          .map(Number);
-        const target = dayjs()
-          .startOf('day')
-          .set('hour', hour)
-          .set('minute', minute)
-          .set('second', second);
-        let delay = target.diff(dayjs());
-        if (delay < 0) {
-          delay = 0;
-        }
-        console.log(delay);
 
-        this.digestQueue.add(
-          digestQueueName.task.emailDigest,
-          {
-            userId: user.id,
-            text: html,
-            email: user.email,
-          },
-          {
-            delay: delay,
-          },
+      if (typeof content !== 'string' || !content.trim()) {
+        throw new Error(
+          `Email digest generation returned no content for user ${userId}`,
         );
       }
+
+      return {
+        email: user.email,
+        html: await marked.parse(content),
+      };
+    } catch (error) {
+      console.error(
+        `Failed to generate email digest for user ${userId}`,
+        error,
+      );
+      throw error;
     }
   }
 }

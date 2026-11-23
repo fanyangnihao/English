@@ -1,8 +1,9 @@
-import { Processor, WorkerHost, OnWorkerEvent } from '@nestjs/bullmq';
+import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { digestQueueName } from './digest.queue';
 import { DigestService } from './digest.service';
 import { EmailService } from '@libs/shared';
+
 //邮件队列消费者
 @Processor(digestQueueName.name)
 export class DigestProcessor extends WorkerHost {
@@ -12,17 +13,34 @@ export class DigestProcessor extends WorkerHost {
   ) {
     super();
   }
+
   async process(job: Job) {
-    // 邮件任务消费
     if (job.name === digestQueueName.task.emailDigest) {
-      const { text, email } = job.data;
-      await this.emailService.sendEmail(email, '每日单词记忆报告', text);
-      console.log('邮件发送成功');
+      const userId = job.data?.userId;
+      if (typeof userId !== 'string' || !userId) {
+        throw new Error('Email digest job is missing userId');
+      }
+
+      const digest = await this.digestService.createUserEmailDigest(userId);
+      if (!digest) {
+        console.log(`Skipped email digest job ${job.id}: user is not eligible`);
+        return;
+      }
+
+      await this.emailService.sendEmail(
+        digest.email,
+        '每日单词记忆报告',
+        digest.html,
+      );
+      console.log(`Sent email digest job ${job.id}`);
+      return;
     }
-    //定时任务消费
-    if (job.name === digestQueueName.task.everyDayDigest) {
-      this.digestService.handleEmailDigest();
-      console.log('每天任务消费成功');
+
+    if (job.name === digestQueueName.task.legacyEveryDayDigest) {
+      console.log(`Ignored legacy digest scheduler job ${job.id}`);
+      return;
     }
+
+    throw new Error(`Unsupported digest job: ${job.name}`);
   }
 }

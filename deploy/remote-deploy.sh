@@ -40,10 +40,23 @@ if [[ ! -s "${DEPLOY_ROOT}/shared/.env" ]]; then
   fi
 fi
 
+if [[ -s "${DEPLOY_ROOT}/shared/.env" && -n "$(tail -c 1 "${DEPLOY_ROOT}/shared/.env")" ]]; then
+  printf '\n' >>"${DEPLOY_ROOT}/shared/.env"
+fi
+
 if ! grep -Eq '^[[:space:]]*VITE_MINIO_ENDPOINT[[:space:]]*=' "${DEPLOY_ROOT}/shared/.env"; then
   echo "VITE_MINIO_ENDPOINT=47.108.199.245" >>"${DEPLOY_ROOT}/shared/.env"
 fi
 chmod 600 "${DEPLOY_ROOT}/shared/.env"
+
+redis_port="$(
+  sed -nE 's/^[[:space:]]*REDIS_PORT[[:space:]]*=[[:space:]]*"?([0-9]+)"?[[:space:]]*$/\1/p' \
+    "${DEPLOY_ROOT}/shared/.env" | tail -n 1
+)"
+if [[ -z "${redis_port}" || "${redis_port}" -lt 1 || "${redis_port}" -gt 65535 ]]; then
+  echo "REDIS_PORT must be a valid TCP port in ${DEPLOY_ROOT}/shared/.env." >&2
+  exit 1
+fi
 
 if ! grep -Eq '^[[:space:]]*DATABASE_URL[[:space:]]*=' "${DEPLOY_ROOT}/shared/.env"; then
   echo "DATABASE_URL is missing from ${DEPLOY_ROOT}/shared/.env." >&2

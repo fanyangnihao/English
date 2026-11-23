@@ -40,6 +40,10 @@ if [[ ! -s "${APP_ROOT}/shared/.env" ]]; then
   fi
 fi
 
+if [[ -s "${APP_ROOT}/shared/.env" && -n "$(tail -c 1 "${APP_ROOT}/shared/.env")" ]]; then
+  printf '\n' >>"${APP_ROOT}/shared/.env"
+fi
+
 if ! grep -Eq '^[[:space:]]*VITE_MINIO_ENDPOINT[[:space:]]*=' "${APP_ROOT}/shared/.env"; then
   echo "VITE_MINIO_ENDPOINT=47.108.199.245" >>"${APP_ROOT}/shared/.env"
 fi
